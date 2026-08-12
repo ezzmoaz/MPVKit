@@ -25,15 +25,15 @@ let package = Package(
                 .linkedFramework("CoreAudio"),
             ]
         ),
-        // ENGINE-2 (dynamic): the engine is 10 dylib frameworks — Libmpv, the seven
-        // libav*, and the two Apache-2.0 components (MoltenVK, shaderc) kept as their
-        // own mach-o. Every other third-party library is statically absorbed into the
-        // dylib that uses it (all permissive or LGPL-2.1+; see the app's ADR-0001).
+        // ENGINE-2 (dynamic): the engine is 9 dylib frameworks — Libmpv, the seven
+        // libav*, and MoltenVK (Apache-2.0) as its own mach-o. Every other third-party
+        // library is statically absorbed into the dylib that uses it (shaderc's static
+        // build hides its C API and cannot be a dylib — see the app's ADR-0001).
         .target(
             name: "_FFmpeg",
             dependencies: [
                 "Libavcodec", "Libavdevice", "Libavfilter", "Libavformat", "Libavutil", "Libswresample", "Libswscale",
-                "MoltenVK", "Libshaderc_combined",
+                "MoltenVK",
             ],
             path: "Sources/_FFmpeg",
             linkerSettings: [

@@ -172,13 +172,8 @@ enum Library: String, CaseIterable {
                 ),
             ]
         case .libshaderc:
-            return  [
-                .target(
-                    name: "Libshaderc_combined",
-                    url: "https://github.com/ezzmoaz/MPVKit/releases/download/\(BaseBuild.options.releaseVersion)/Libshaderc_combined.xcframework.zip",
-                    checksum: "https://github.com/mpvkit/libshaderc-build/releases/download/\(self.version)/Libshaderc_combined.xcframework.checksum.txt"
-                ),
-            ]
+            // Absorbed statically (hidden-visibility C API; see BuildShaderc) — no SPM target.
+            return []
         case .libuchardet, .libuavs3d:
             // Absorbed statically into the engine dylibs (ENGINE-2) — no SPM target.
             return []
@@ -613,29 +608,11 @@ private class BuildShaderc: ZipBaseBuild {
     init() throws {
         super.init(library: .libshaderc)
     }
-
-    // ENGINE-2: shaderc is Apache-2.0 — it ships as its OWN dylib framework so no
-    // Apache object code lands inside an LGPL dylib. New bytes → local checksum.
-    override var usesUpstreamChecksum: Bool { false }
-
-    override func frameworks() throws -> [String] {
-        ["libshaderc_combined"]
-    }
-
-    override func afterRestore() throws {
-        for platform in BaseBuild.platforms {
-            for arch in architectures(platform) {
-                try wrapStaticAsDylib(
-                    platform: platform, arch: arch,
-                    staticName: "libshaderc_combined.a",
-                    framework: "Libshaderc_combined",
-                    extraArgs: ["-lc++"]
-                )
-            }
-        }
-        try createXCFramework()
-        try packageRelease()
-    }
+    // ENGINE-2 note: shaderc could NOT ship as its own dylib — its static build marks
+    // the C API (`shaderc_compile_into_spv` …) private-external, and a linker cannot
+    // export what the objects hide. It is statically absorbed into the dylibs that use
+    // it (libmpv via libplacebo, libavutil/libavfilter via --enable-libshaderc); the
+    // Apache-2.0-inside-LGPL-dylib consequence is recorded in the app's ADR-0001.
 }
 
 
