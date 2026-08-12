@@ -396,12 +396,18 @@ class BaseBuild {
                 return nil
             }
             let libname = framework.hasPrefix("lib") || framework.hasPrefix("Lib") ? framework : "lib" + framework
-            var libPath = prefix + ["lib", "\(libname).a"]
-            if !FileManager.default.fileExists(atPath: libPath.path) {
-                libPath = prefix + ["lib", "\(libname).dylib"]
+            let staticPath = prefix + ["lib", "\(libname).a"]
+            let dylibPath = prefix + ["lib", "\(libname).dylib"]
+            if FileManager.default.fileExists(atPath: staticPath.path) {
+                arguments.append(staticPath.path)
+            } else if FileManager.default.fileExists(atPath: dylibPath.path) {
+                arguments.append(dylibPath.path)
                 usedDylib = true
+            } else {
+                // The prebuilt genuinely lacks this arch (see wrapStaticAsDylib) — skip it
+                // rather than hand lipo a path that does not exist.
+                continue
             }
-            arguments.append(libPath.path)
             var headerURL: URL = prefix + "include" + framework
             if !FileManager.default.fileExists(atPath: headerURL.path) {
                 headerURL = prefix + "include"
@@ -481,6 +487,14 @@ class BaseBuild {
         let lib = thinDir(platform: platform, arch: arch) + "lib"
         let archive = lib + staticName
         guard FileManager.default.fileExists(atPath: archive.path) else { return }
+        // A fat static archive can silently miss an arch (ld would fall back with a
+        // warning); a dylib cannot. Skip archs the prebuilt does not actually contain.
+        let archInfo = Utility.shell("/usr/bin/lipo -info '\(archive.path)'", isOutput: true) ?? ""
+        let tokens = archInfo.split(whereSeparator: { $0 == " " || $0 == "\n" }).map(String.init)
+        guard tokens.contains(arch.rawValue) else {
+            try FileManager.default.removeItem(at: archive)
+            return
+        }
         let dylibName = "lib" + (framework.hasPrefix("Lib") ? String(framework.dropFirst(3)).lowercased() : framework) + ".dylib"
         let out = lib + dylibName
         var args = ["clang++", "-dynamiclib",
@@ -1112,7 +1126,10 @@ enum PlatformType: String, CaseIterable {
         case .ios, .xros:
             return [.arm64]
         case .tvos:
-            return [.arm64, .arm64e]
+            // ENGINE-2: arm64 only. tvOS apps link arm64; several prebuilts (MoltenVK)
+            // ship no arm64e slice, and a dylib product cannot fake one the way a fat
+            // static archive silently could.
+            return [.arm64]
         case .xrsimulator:
             return [.arm64]
         case .isimulator, .tvsimulator:
