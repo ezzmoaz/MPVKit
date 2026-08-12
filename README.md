@@ -1,8 +1,20 @@
-# MPVKit
+# MPVKit — LGPL-2.1-only fork
 
 [![mpv](https://img.shields.io/badge/mpv-v0.41.0-blue.svg)](https://github.com/mpv-player/mpv)
 [![ffmpeg](https://img.shields.io/badge/ffmpeg-n8.1.2-blue.svg)](https://github.com/FFmpeg/FFmpeg)
-[![license](https://img.shields.io/github/license/mpvkit/MPVKit)](https://github.com/mpvkit/MPVKit/main/LICENSE)
+
+> **This fork (`ezzmoaz/MPVKit`, branch `lgpl21`) builds an LGPL-2.1-only bundle.**
+> Differences from upstream [mpvkit/MPVKit](https://github.com/mpvkit/MPVKit):
+> FFmpeg is configured **without** `--enable-version3` and `--enable-nonfree` (upstream
+> passes both unconditionally, which makes its "LGPL" binaries LGPL-3.0 and
+> non-redistributable respectively); TLS comes from Apple **SecureTransport** instead of
+> gnutls (LGPL-3.0); gnutls/nettle/hogweed/gmp, OpenSSL, libbluray, LuaJIT and
+> libsmbclient are removed; the `MPVKit-GPL` product does not exist here and
+> `enable-gpl` exits with an error. mpv keeps upstream's `-Dgpl=false`.
+> Frameworks are static archives, as upstream builds them. Release assets mirror the
+> `mpvkit/*-build` prebuilts byte-for-byte (checksums verified against the producing
+> repos). Build scripts remain LGPL-3.0 (upstream's license for the *tooling*); the
+> *artifacts* carry their own components' licenses, nothing stricter than LGPL-2.1.
 
 > MPVKit is only suitable for learning `libmpv` and will not be maintained too frequently.
 
@@ -28,8 +40,7 @@ https://github.com/mpvkit/MPVKit.git
 
 | Version | License | Note |
 |---|---|---|
-| MPVKit | LGPL | [FFmpeg details](https://github.com/FFmpeg/FFmpeg/blob/master/LICENSE.md) , [mpv details](https://github.com/mpv-player/mpv/blob/master/Copyright) |
-| MPVKit-GPL | GPL | Support samba protocol, same as old MPVKit version |
+| MPVKit | **LGPL-2.1+** (this fork's only product) | [FFmpeg details](https://github.com/FFmpeg/FFmpeg/blob/master/LICENSE.md) , [mpv details](https://github.com/mpv-player/mpv/blob/master/Copyright) — no `version3`/`nonfree`/GPL flags, SecureTransport TLS |
 
 
 ## How to build
