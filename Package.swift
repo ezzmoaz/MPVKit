@@ -58,50 +58,50 @@ let package = Package(
 
         .binaryTarget(
             name: "MoltenVK",
-            url: "https://github.com/ezzmoaz/MPVKit/releases/download/0.41.0-n8.1.2-lgpl21.3/MoltenVK.xcframework.zip",
-            checksum: "02a7f9dfda68883d3fc8b2e165a77124f5110da43860b22e4daa2d252292f112"
+            url: "https://github.com/ezzmoaz/MPVKit/releases/download/0.41.0-n8.1.2-lgpl21.4/MoltenVK.xcframework.zip",
+            checksum: "560b251b064899aebe342361ec8165c239de34141e17b9ae4c09ad3d8c074c1b"
         ),
 
         .binaryTarget(
             name: "Libavcodec",
-            url: "https://github.com/ezzmoaz/MPVKit/releases/download/0.41.0-n8.1.2-lgpl21.3/Libavcodec.xcframework.zip",
-            checksum: "111b9b3b7dd6930d17b12a1b8dd15e9bdcaa3561d4f24200101deef9c8a58bf5"
+            url: "https://github.com/ezzmoaz/MPVKit/releases/download/0.41.0-n8.1.2-lgpl21.4/Libavcodec.xcframework.zip",
+            checksum: "8fa76193b53caf692e8cd92ce04e842d57efd467a4e67e9605214dd5bcf5b3fa"
         ),
         .binaryTarget(
             name: "Libavdevice",
-            url: "https://github.com/ezzmoaz/MPVKit/releases/download/0.41.0-n8.1.2-lgpl21.3/Libavdevice.xcframework.zip",
-            checksum: "b078a516710ab9af3ddeee02a266aea1bc8ee397efb28305669d7f0e4afd5492"
+            url: "https://github.com/ezzmoaz/MPVKit/releases/download/0.41.0-n8.1.2-lgpl21.4/Libavdevice.xcframework.zip",
+            checksum: "6586bef9496e8968b54b55372147717b7991b69782549fd845fa64adce64574a"
         ),
         .binaryTarget(
             name: "Libavformat",
-            url: "https://github.com/ezzmoaz/MPVKit/releases/download/0.41.0-n8.1.2-lgpl21.3/Libavformat.xcframework.zip",
-            checksum: "44f6853e2bdb4034a51882eaf7d00896f44d48fe41af4a5448fb48053322a623"
+            url: "https://github.com/ezzmoaz/MPVKit/releases/download/0.41.0-n8.1.2-lgpl21.4/Libavformat.xcframework.zip",
+            checksum: "e71cb23e872f9cda4b6c05fba76f82ed9c64199f08e0e4cb26958ca1deb8dfd9"
         ),
         .binaryTarget(
             name: "Libavfilter",
-            url: "https://github.com/ezzmoaz/MPVKit/releases/download/0.41.0-n8.1.2-lgpl21.3/Libavfilter.xcframework.zip",
-            checksum: "d6bb853def4951e55da1d5d7808d62e28ab5857296ee9b804e78c32bfe679197"
+            url: "https://github.com/ezzmoaz/MPVKit/releases/download/0.41.0-n8.1.2-lgpl21.4/Libavfilter.xcframework.zip",
+            checksum: "d0923672f5c5328115073ea8a992b56ef52651df2474baa12c13dc6025487f91"
         ),
         .binaryTarget(
             name: "Libavutil",
-            url: "https://github.com/ezzmoaz/MPVKit/releases/download/0.41.0-n8.1.2-lgpl21.3/Libavutil.xcframework.zip",
-            checksum: "28a1be0535679705e7b10841f629306abdaeb818a1efe9ac365db605bd9f3c3a"
+            url: "https://github.com/ezzmoaz/MPVKit/releases/download/0.41.0-n8.1.2-lgpl21.4/Libavutil.xcframework.zip",
+            checksum: "5a58d5990985a0a2c53fb215d82c9254e7c9a1a955a7616ba37174f143b81b52"
         ),
         .binaryTarget(
             name: "Libswresample",
-            url: "https://github.com/ezzmoaz/MPVKit/releases/download/0.41.0-n8.1.2-lgpl21.3/Libswresample.xcframework.zip",
-            checksum: "1621c7ca7354e1f22d7810df066b9057bcda0231f3e745a3b68fadba9651c92e"
+            url: "https://github.com/ezzmoaz/MPVKit/releases/download/0.41.0-n8.1.2-lgpl21.4/Libswresample.xcframework.zip",
+            checksum: "4526b58b95fd57e3314a440c4e2f2a9e9a39f9783427ba0e3419d53c3e95eacc"
         ),
         .binaryTarget(
             name: "Libswscale",
-            url: "https://github.com/ezzmoaz/MPVKit/releases/download/0.41.0-n8.1.2-lgpl21.3/Libswscale.xcframework.zip",
-            checksum: "a08bb98b814afc40ec65ec9d2efced354a798b7e6023e5e66145c056ff5b30fc"
+            url: "https://github.com/ezzmoaz/MPVKit/releases/download/0.41.0-n8.1.2-lgpl21.4/Libswscale.xcframework.zip",
+            checksum: "2cedf3cbfaf6aeedc9ae25d85545ccb6edb03e122333c3005fc44b0b4d9229f1"
         ),
 
         .binaryTarget(
             name: "Libmpv",
-            url: "https://github.com/ezzmoaz/MPVKit/releases/download/0.41.0-n8.1.2-lgpl21.3/Libmpv.xcframework.zip",
-            checksum: "01c921773fbfaff27030faf0260d5f5a99942ff58cd4ac9ca422cb0c02b1d5fc"
+            url: "https://github.com/ezzmoaz/MPVKit/releases/download/0.41.0-n8.1.2-lgpl21.4/Libmpv.xcframework.zip",
+            checksum: "402ab5221a2e044e57725b053820ec06cf65dbeca37df2a6e09adfea05245f4f"
         ),
         //AUTO_GENERATE_TARGETS_END//
     ]
