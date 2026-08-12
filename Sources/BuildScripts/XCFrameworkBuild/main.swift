@@ -157,78 +157,12 @@ enum Library: String, CaseIterable {
                     checksum: ""
                 ),
             ]
-        case .libass:
-            return  [
-                .target(
-                    name: "Libass",
-                    url: "https://github.com/ezzmoaz/MPVKit/releases/download/\(BaseBuild.options.releaseVersion)/Libass.xcframework.zip",
-                    checksum: "https://github.com/mpvkit/libass-build/releases/download/\(self.version)/Libass.xcframework.checksum.txt"
-                ),
-            ]
-        case .libunibreak:
-            return  [
-                .target(
-                    name: "Libunibreak",
-                    url: "https://github.com/ezzmoaz/MPVKit/releases/download/\(BaseBuild.options.releaseVersion)/Libunibreak.xcframework.zip",
-                    checksum: "https://github.com/mpvkit/libass-build/releases/download/\(self.version)/Libunibreak.xcframework.checksum.txt"
-                ),
-            ]
-        case .libfreetype:
-            return  [
-                .target(
-                    name: "Libfreetype",
-                    url: "https://github.com/ezzmoaz/MPVKit/releases/download/\(BaseBuild.options.releaseVersion)/Libfreetype.xcframework.zip",
-                    checksum: "https://github.com/mpvkit/libass-build/releases/download/\(self.version)/Libfreetype.xcframework.checksum.txt"
-                ),
-            ]
-        case .libfribidi:
-            return  [
-                .target(
-                    name: "Libfribidi",
-                    url: "https://github.com/ezzmoaz/MPVKit/releases/download/\(BaseBuild.options.releaseVersion)/Libfribidi.xcframework.zip",
-                    checksum: "https://github.com/mpvkit/libass-build/releases/download/\(self.version)/Libfribidi.xcframework.checksum.txt"
-                ),
-            ]
-        case .libharfbuzz:
-            return  [
-                .target(
-                    name: "Libharfbuzz",
-                    url: "https://github.com/ezzmoaz/MPVKit/releases/download/\(BaseBuild.options.releaseVersion)/Libharfbuzz.xcframework.zip",
-                    checksum: "https://github.com/mpvkit/libass-build/releases/download/\(self.version)/Libharfbuzz.xcframework.checksum.txt"
-                ),
-            ]
-        case .lcms2:
-            return  [
-                .target(
-                    name: "lcms2",
-                    url: "https://github.com/ezzmoaz/MPVKit/releases/download/\(BaseBuild.options.releaseVersion)/lcms2.xcframework.zip",
-                    checksum: "https://github.com/mpvkit/lcms2-build/releases/download/\(self.version)/lcms2.xcframework.checksum.txt"
-                ),
-            ]
-        case .libplacebo:
-            return  [
-                .target(
-                    name: "Libplacebo",
-                    url: "https://github.com/ezzmoaz/MPVKit/releases/download/\(BaseBuild.options.releaseVersion)/Libplacebo.xcframework.zip",
-                    checksum: "https://github.com/mpvkit/libplacebo-build/releases/download/\(self.version)/Libplacebo.xcframework.checksum.txt"
-                ),
-            ]
-        case .libdav1d:
-            return  [
-                .target(
-                    name: "Libdav1d",
-                    url: "https://github.com/ezzmoaz/MPVKit/releases/download/\(BaseBuild.options.releaseVersion)/Libdav1d.xcframework.zip",
-                    checksum: "https://github.com/mpvkit/libdav1d-build/releases/download/\(self.version)/Libdav1d.xcframework.checksum.txt"
-                ),
-            ]
-        case .libdovi:
-            return  [
-                .target(
-                    name: "Libdovi",
-                    url: "https://github.com/ezzmoaz/MPVKit/releases/download/\(BaseBuild.options.releaseVersion)/Libdovi.xcframework.zip",
-                    checksum: "https://github.com/mpvkit/libdovi-build/releases/download/\(self.version)/Libdovi.xcframework.checksum.txt"
-                ),
-            ]
+        case .libass, .libunibreak, .libfreetype, .libfribidi, .libharfbuzz:
+            // Absorbed statically into the engine dylibs (ENGINE-2) — no SPM target.
+            return []
+        case .lcms2, .libplacebo, .libdav1d, .libdovi:
+            // Absorbed statically into the engine dylibs (ENGINE-2) — no SPM target.
+            return []
         case .vulkan:
             return  [
                 .target(
@@ -245,22 +179,9 @@ enum Library: String, CaseIterable {
                     checksum: "https://github.com/mpvkit/libshaderc-build/releases/download/\(self.version)/Libshaderc_combined.xcframework.checksum.txt"
                 ),
             ]
-        case .libuchardet:
-            return  [
-                .target(
-                    name: "Libuchardet",
-                    url: "https://github.com/ezzmoaz/MPVKit/releases/download/\(BaseBuild.options.releaseVersion)/Libuchardet.xcframework.zip",
-                    checksum: "https://github.com/mpvkit/libuchardet-build/releases/download/\(self.version)/Libuchardet.xcframework.checksum.txt"
-                ),
-            ]
-        case .libuavs3d:
-            return  [
-                .target(
-                    name: "Libuavs3d",
-                    url: "https://github.com/ezzmoaz/MPVKit/releases/download/\(BaseBuild.options.releaseVersion)/Libuavs3d.xcframework.zip",
-                    checksum: "https://github.com/mpvkit/libuavs3d-build/releases/download/\(self.version)/Libuavs3d.xcframework.checksum.txt"
-                ),
-            ]
+        case .libuchardet, .libuavs3d:
+            // Absorbed statically into the engine dylibs (ENGINE-2) — no SPM target.
+            return []
         }
     }
 }
@@ -366,6 +287,14 @@ private class BuildFFMPEG: BaseBuild {
                     if fileName.hasPrefix("lib"), fileName.hasSuffix(".a") {
                         // 因为其他库也可能引入libavformat,所以把lib改成大写，这样就可以排在前面，覆盖别的库。
                         frameworks.append("Lib" + fileName.dropFirst(3).dropLast(2))
+                    } else if fileName.hasPrefix("lib"), fileName.hasSuffix(".dylib") {
+                        // Shared build: pick only the unversioned symlink names
+                        // (libavcodec.dylib, not libavcodec.62.dylib) so each library
+                        // appears exactly once.
+                        let stem = fileName.dropFirst(3).dropLast(6)
+                        if !stem.contains(".") {
+                            frameworks.append("Lib" + stem)
+                        }
                     }
                 }
             }
@@ -487,12 +416,14 @@ private class BuildFFMPEG: BaseBuild {
         // Configuration options:
         "--disable-armv5te", "--disable-armv6", "--disable-armv6t2",
         "--disable-bzlib", "--disable-gray", "--disable-iconv", "--disable-linux-perf",
-        "--disable-shared", "--disable-small", "--disable-symver", "--disable-xlib",
+        // ENGINE-2: shared libraries — the LGPL-2.1 §6(b) posture. Each libav* ships as
+        // its own replaceable dylib framework; static archives are no longer produced.
+        "--enable-shared", "--disable-small", "--disable-symver", "--disable-xlib",
         // LGPL-2.1 fork: no --enable-gpl, no --enable-version3, no --enable-nonfree.
         // TLS comes from Apple SecureTransport (plain LGPL in FFmpeg's configure,
         // conflicts with the removed gnutls) so the bundle never leaves LGPL-2.1.
         "--enable-cross-compile", "--enable-libxml2",
-        "--enable-optimizations", "--enable-pic", "--enable-runtime-cpudetect", "--enable-securetransport", "--enable-static", "--enable-thumb",
+        "--enable-optimizations", "--enable-pic", "--enable-runtime-cpudetect", "--enable-securetransport", "--disable-static", "--enable-thumb",
         "--pkg-config-flags=--static",
         // Documentation options:
         "--disable-doc", "--disable-htmlpages", "--disable-manpages", "--disable-podpages", "--disable-txtpages",
@@ -682,12 +613,43 @@ private class BuildShaderc: ZipBaseBuild {
     init() throws {
         super.init(library: .libshaderc)
     }
+
+    // ENGINE-2: shaderc is Apache-2.0 — it ships as its OWN dylib framework so no
+    // Apache object code lands inside an LGPL dylib. New bytes → local checksum.
+    override var usesUpstreamChecksum: Bool { false }
+
+    override func frameworks() throws -> [String] {
+        ["libshaderc_combined"]
+    }
+
+    override func afterRestore() throws {
+        for platform in BaseBuild.platforms {
+            for arch in architectures(platform) {
+                try wrapStaticAsDylib(
+                    platform: platform, arch: arch,
+                    staticName: "libshaderc_combined.a",
+                    framework: "Libshaderc_combined",
+                    extraArgs: ["-lc++"]
+                )
+            }
+        }
+        try createXCFramework()
+        try packageRelease()
+    }
 }
 
 
 private class BuildVulkan: ZipBaseBuild {
     init() {
         super.init(library: .vulkan)
+    }
+
+    // ENGINE-2: MoltenVK is Apache-2.0 — it ships as its OWN dylib framework so no
+    // Apache object code lands inside an LGPL dylib. New bytes → local checksum.
+    override var usesUpstreamChecksum: Bool { false }
+
+    override func frameworks() throws -> [String] {
+        ["MoltenVK"]
     }
 
     override func buildALL() throws {
@@ -720,9 +682,26 @@ private class BuildVulkan: ZipBaseBuild {
                         try! str.write(toFile: file.path, atomically: true, encoding: .utf8)
                     }
                 }
+
+                var linkArgs = ["-framework", "Metal", "-framework", "Foundation",
+                                "-framework", "QuartzCore", "-framework", "IOSurface",
+                                "-framework", "CoreGraphics", "-lc++"]
+                if platform == .macos {
+                    linkArgs += ["-framework", "AppKit"]
+                } else {
+                    linkArgs += ["-framework", "UIKit"]
+                }
+                try wrapStaticAsDylib(
+                    platform: platform, arch: arch,
+                    staticName: "libMoltenVK.a",
+                    framework: "MoltenVK",
+                    extraArgs: linkArgs
+                )
             }
         }
 
+        try createXCFramework()
+        try packageRelease()
         try super.afterBuild()
     }
 }

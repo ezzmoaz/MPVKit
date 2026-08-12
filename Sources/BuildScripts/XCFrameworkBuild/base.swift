@@ -389,6 +389,7 @@ class BaseBuild {
         try? FileManager.default.removeItem(at: frameworkDir)
         try FileManager.default.createDirectory(at: frameworkDir, withIntermediateDirectories: true, attributes: nil)
         var arguments = ["-create"]
+        var usedDylib = false
         for arch in platform.architectures {
             let prefix = thinDir(platform: platform, arch: arch)
             if !FileManager.default.fileExists(atPath: prefix.path) {
@@ -398,6 +399,7 @@ class BaseBuild {
             var libPath = prefix + ["lib", "\(libname).a"]
             if !FileManager.default.fileExists(atPath: libPath.path) {
                 libPath = prefix + ["lib", "\(libname).dylib"]
+                usedDylib = true
             }
             arguments.append(libPath.path)
             var headerURL: URL = prefix + "include" + framework
@@ -409,6 +411,9 @@ class BaseBuild {
         arguments.append("-output")
         arguments.append((frameworkDir + framework).path)
         try Utility.launch(path: "/usr/bin/lipo", arguments: arguments)
+        if usedDylib {
+            normalizeDylibFramework(binPath: (frameworkDir + framework).path, framework: framework)
+        }
         try FileManager.default.createDirectory(at: frameworkDir + "Modules", withIntermediateDirectories: true, attributes: nil)
         var modulemap = """
         framework module \(framework) [system] {
@@ -426,12 +431,68 @@ class BaseBuild {
         }
         """
         FileManager.default.createFile(atPath: frameworkDir.path + "/Modules/module.modulemap", contents: modulemap.data(using: .utf8), attributes: nil)
-        // Setting the minimum version to 100.0 is required for uploading a static framework to the App Store after Xcode 15.4
-        // Fix: ITMS-90208: "Invalid Bundle. The bundle xxx.framework does not support the minimum OS Version specified in the Info.plist."
-        // It was originally using `platform.minVersion`
-        createPlist(path: frameworkDir.path + "/Info.plist", name: framework, minVersion: "100.0", platform: platform.sdk)
+        // Static frameworks need minVersion 100.0 for App Store upload after Xcode 15.4
+        // (ITMS-90208); DYNAMIC frameworks must carry the real minimum or validation and
+        // dyld policy reject them — so the value follows what lipo just packaged.
+        createPlist(path: frameworkDir.path + "/Info.plist", name: framework, minVersion: usedDylib ? platform.minVersion : "100.0", platform: platform.sdk)
         try fixShallowBundles(framework: framework, platform: platform, frameworkDir: frameworkDir)
         return frameworkDir.path
+    }
+
+    /// Post-process a lipo'd DYLIB framework binary: give it the framework-style install
+    /// name, rewrite every in-tree dependency reference to that dependency's @rpath
+    /// framework home, and re-sign ad hoc (install_name_tool invalidates the signature).
+    func normalizeDylibFramework(binPath: String, framework: String) {
+        Utility.shell("/usr/bin/install_name_tool -id '@rpath/\(framework).framework/\(framework)' '\(binPath)'")
+        let links = Utility.shell("/usr/bin/otool -L '\(binPath)'", isOutput: true) ?? ""
+        for rawLine in links.split(separator: "\n").dropFirst() {
+            let dep = rawLine.trimmingCharacters(in: .whitespaces).components(separatedBy: " (").first ?? ""
+            guard !dep.isEmpty else { continue }
+            let leaf = (dep as NSString).lastPathComponent
+            guard let target = BaseBuild.dylibFrameworkName(forLeaf: leaf) else { continue }
+            Utility.shell("/usr/bin/install_name_tool -change '\(dep)' '@rpath/\(target).framework/\(target)' '\(binPath)'")
+        }
+        Utility.shell("/usr/bin/codesign --force --sign - '\(binPath)'")
+    }
+
+    /// libavutil.62.dylib -> Libavutil · libmpv.2.dylib -> Libmpv ·
+    /// libMoltenVK.dylib -> MoltenVK · libshaderc_combined.dylib -> Libshaderc_combined.
+    /// Unknown leaves (system dylibs, frameworks) return nil and are left untouched.
+    static func dylibFrameworkName(forLeaf leaf: String) -> String? {
+        guard leaf.hasSuffix(".dylib"), leaf.hasPrefix("lib") else { return nil }
+        var stem = String(leaf.dropLast(6))
+        while let dot = stem.lastIndex(of: "."), stem[stem.index(after: dot)...].allSatisfy({ $0.isNumber }) {
+            stem = String(stem[..<dot])
+        }
+        let known: [String: String] = [
+            "libavcodec": "Libavcodec", "libavdevice": "Libavdevice", "libavfilter": "Libavfilter",
+            "libavformat": "Libavformat", "libavutil": "Libavutil", "libswresample": "Libswresample",
+            "libswscale": "Libswscale", "libmpv": "Libmpv",
+            "libMoltenVK": "MoltenVK", "libshaderc_combined": "Libshaderc_combined",
+        ]
+        return known[stem]
+    }
+
+    /// Wrap a prebuilt static archive into a standalone dylib (its own framework-to-be),
+    /// so Apache-2.0 components stay their own mach-o instead of landing inside an LGPL
+    /// dylib. The fat .a is consumed whole per arch; the archive is removed so later
+    /// linkers record a dependency instead of absorbing the code.
+    func wrapStaticAsDylib(platform: PlatformType, arch: ArchType, staticName: String, framework: String, extraArgs: [String]) throws {
+        let lib = thinDir(platform: platform, arch: arch) + "lib"
+        let archive = lib + staticName
+        guard FileManager.default.fileExists(atPath: archive.path) else { return }
+        let dylibName = "lib" + (framework.hasPrefix("Lib") ? String(framework.dropFirst(3)).lowercased() : framework) + ".dylib"
+        let out = lib + dylibName
+        var args = ["clang++", "-dynamiclib",
+                    "-target", platform.deploymentTarget(arch),
+                    "-isysroot", platform.isysroot,
+                    "-Wl,-all_load", archive.path,
+                    "-install_name", "@rpath/\(framework).framework/\(framework)",
+                    "-compatibility_version", "1", "-current_version", "1",
+                    "-o", out.path]
+        args += extraArgs
+        try Utility.launch(path: "/usr/bin/xcrun", arguments: args)
+        try FileManager.default.removeItem(at: archive)
     }
 
     // Fix shallow bundles for Xcode 26, only for macOS frameworks
@@ -583,7 +644,7 @@ class BaseBuild {
         endian = 'little'
 
         [built-in options]
-        default_library = 'static'
+        default_library = 'shared'
         buildtype = 'release'
         prefix = '\(prefix.path)'
         c_args = [\(cFlags)]
@@ -614,7 +675,7 @@ class BaseBuild {
                  if !FileManager.default.fileExists(atPath: thinLibPath.path) {
                      continue
                  }
-                 let staticLibraries = try FileManager.default.contentsOfDirectory(atPath: thinLibPath.path).filter { $0.hasSuffix(".a") }
+                 let staticLibraries = try FileManager.default.contentsOfDirectory(atPath: thinLibPath.path).filter { $0.hasSuffix(".a") || $0.hasSuffix(".dylib") }
 
                  let releaseThinLibPath = releaseDirPath + [library.rawValue, "lib", platform.rawValue, "thin", arch.rawValue, "lib"]
                  try? FileManager.default.createDirectory(at: releaseThinLibPath, withIntermediateDirectories: true, attributes: nil)
@@ -724,7 +785,7 @@ class BaseBuild {
         }
 
         var dependencyTargetContent = ""
-        if self is ZipBaseBuild {
+        if usesUpstreamChecksum {
             for target in library.targets {
                 let tmpChecksum = FileManager.default.temporaryDirectory + "\(library.rawValue)_checksum.txt"
                 if FileManager.default.fileExists(atPath: tmpChecksum.path) {
@@ -774,6 +835,11 @@ class BaseBuild {
             try! str.write(toFile: packageFile.path, atomically: true, encoding: .utf8)
         }
     }
+
+    /// ZipBaseBuild libraries normally re-publish upstream's checksum; builds that
+    /// transform the prebuilt (e.g. wrapping it into a dylib) produce NEW bytes and
+    /// must read the locally computed checksum instead.
+    var usesUpstreamChecksum: Bool { self is ZipBaseBuild }
 
     func getFirstSuccessPlatform() -> PlatformType? {
         for platform in BaseBuild.platforms {
@@ -949,8 +1015,13 @@ class ZipBaseBuild : BaseBuild {
             }
         }
 
+        try afterRestore()
         try afterBuild()
     }
+
+    /// Hook between restoring the prebuilt into the thin dirs and Package.swift
+    /// generation — dylib-wrapping builds transform and re-package here.
+    func afterRestore() throws {}
 
     override func afterBuild() throws {
         try super.afterBuild()
